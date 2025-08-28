@@ -6,6 +6,13 @@ import random
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
+stages = [
+    {"name": "INTAKE", "mode": "deterministic", "abilities": [("accept_payload", "COMMON")]},
+    {"name": "UNDERSTAND", "mode": "deterministic", "abilities": [("parse_request_text", "COMMON"), ("extract_entities", "ATLAS")]},
+    {"name": "PREPARE", "mode": "deterministic", "abilities": [("normalize_fields", "COMMON"), ("enrich_records", "ATLAS"), ("add_flags_calculations", "COMMON")]},
+    {"name": "DECIDE", "mode": "non-deterministic", "abilities": [("solution_evaluation", "COMMON"), ("escalation_decision", "ATLAS")]}
+]
+
 # Dummy MCP Clients
 def call_common_server(ability, state):
     logging.info(f"[COMMON] {ability} executed")

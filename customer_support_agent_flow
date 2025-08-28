@@ -1,0 +1,29 @@
+// Customer Support Agent Workflow
+digraph {
+	rankdir=TB size="8,10"
+	START [color=lightgrey shape=oval style=filled]
+	END [color=lightgrey shape=oval style=filled]
+	INTAKE [color=lightblue shape=box style="rounded,filled"]
+	UNDERSTAND [color=lightblue shape=box style="rounded,filled"]
+	PREPARE [color=lightblue shape=box style="rounded,filled"]
+	ASK [color=lightblue shape=box style="rounded,filled"]
+	WAIT [color=lightblue shape=box style="rounded,filled"]
+	RETRIEVE [color=lightblue shape=box style="rounded,filled"]
+	DECIDE [color=lightblue shape=box style="rounded,filled"]
+	UPDATE [color=lightblue shape=box style="rounded,filled"]
+	CREATE [color=lightblue shape=box style="rounded,filled"]
+	DO [color=lightblue shape=box style="rounded,filled"]
+	COMPLETE [color=lightblue shape=box style="rounded,filled"]
+	START -> INTAKE
+	INTAKE -> UNDERSTAND
+	UNDERSTAND -> PREPARE
+	PREPARE -> ASK
+	ASK -> WAIT
+	WAIT -> RETRIEVE
+	RETRIEVE -> DECIDE
+	DECIDE -> UPDATE
+	UPDATE -> CREATE
+	CREATE -> DO
+	DO -> COMPLETE
+	COMPLETE -> END
+}

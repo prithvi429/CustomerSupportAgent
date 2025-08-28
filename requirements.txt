@@ -1,14 +1,24 @@
-# Core dependencies
-langgraph==0.2.14         # LangGraph for stage orchestration
-langchain==0.2.12         # LangChain to work with LLMs
-pyyaml==6.0.2             # For config file (agent_config.yaml)
-python-dotenv==1.0.1      # To load API keys from .env
+# Core Orchestration
+langgraph==0.2.14          # LangGraph for stage orchestration
+langchain==0.2.12          # LangChain to work with LLMs
+langchain-core==0.2.35
+langchain-community==0.2.12
+langchain-text-splitters==0.2.2
+langchain-openai==0.2.9
+pyyaml==6.0.2              # For config (agent_config.yaml)
+python-dotenv==1.0.1       # Load API keys from .env
 
-# LLM integration
-openai==1.40.3            # For GPT models in UNDERSTAND stage
+# LLM Integration
+openai==1.40.6             # OpenAI GPT models (UNDERSTAND stage)
 
-# Logging & visibility
-rich==13.7.1              # Pretty console logs
+# Vector Database
+chromadb==0.5.5            # Knowledge base retrieval with embeddings
 
-streamlit
-chromadb
+# UI & Logs
+streamlit==1.37.1          # Web UI for real-time logs
+rich==13.7.1               # Pretty console logs
+
+# Visualization (optional, for workflow diagrams)
+graphviz==0.20.3
+pygraphviz==1.12
+networkx==3.3
