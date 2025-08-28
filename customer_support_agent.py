@@ -1,190 +1,146 @@
 # customer_support_agent.py
-# Customer Support Agent: Step-by-step flow with LLM-enhanced UNDERSTAND stage
-import openai
+# Customer Support Agent that accepts full customer info
 
-# Set your OpenAI API key here (replace with your actual key)
-openai.api_key = "your-api-key"
+import logging
+import random
 
-class Node:
-    def __init__(self, name, description):
-        self.name = name
-        self.description = description
-        self.next_nodes = []
-    def add_next(self, node, condition=None):
-        self.next_nodes.append((node, condition))
-    def __repr__(self):
-        return f"Node({self.name})"
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+# Dummy MCP Clients
+def call_common_server(ability, state):
+    logging.info(f"[COMMON] {ability} executed")
+    return {ability: f"common_result_for_{ability}"}
+
+def call_atlas_server(ability, state):
+    logging.info(f"[ATLAS] {ability} executed")
+    return {ability: f"atlas_result_for_{ability}"}
+
+def execute_ability(ability, server, state):
+    if server == "COMMON":
+        return call_common_server(ability, state)
+    else:
+        return call_atlas_server(ability, state)
 
 class CustomerSupportAgent:
     def __init__(self):
-        # Define nodes
-        self.intake = Node("INTAKE", "Accept customer details")
-        self.understand = Node("UNDERSTAND", "Interpret the query meaning")
-        self.prepare = Node("PREPARE", "Clean data, check ticket history, add priority flags")
-        self.ask = Node("ASK", "Request missing info from customer if needed")
-        self.wait = Node("WAIT", "Wait for customer reply and store it")
-        self.retrieve = Node("RETRIEVE", "Search knowledge base for answers")
-        self.decide = Node("DECIDE", "Decide auto-solve or escalate")
-        self.update = Node("UPDATE", "Update ticket status")
-        self.create = Node("CREATE", "Draft reply to customer")
-        self.do = Node("DO", "Run actions (send notifications, call APIs)")
-        self.complete = Node("COMPLETE", "Output final structured result")
-        # State
         self.state = {
-            'customer': {},
-            'issue_type': None,
-            'ticket_history': [],
-            'priority': 'normal',
-            'missing_info': [],
-            'kb_result': None,
-            'auto_solve': False,
-            'ticket_status': None,
-            'reply': None,
-            'actions': [],
-            'final_result': None
+            "customer": {},
+            "priority": None,
+            "ticket_status": "Open",
+            "kb_answer": None,
+            "solution_score": 0,
+            "can_auto_solve": False,
+            "reply": None,
+            "logs": []
         }
 
-    def intake_stage(self, details):
-        self.state['customer'] = details
-        print(f"INTAKE: Received details {details}")
+    # Simple knowledge base
+    def knowledge_base_search(self, query):
+        if "order" in query.lower():
+            return "Your order is delayed due to shipping issues. Expected delivery in 3 days."
+        elif "refund" in query.lower():
+            return "Refunds are processed within 5-7 business days."
+        elif "password" in query.lower():
+            return "You can reset your password by clicking 'Forgot Password' on the login page."
+        else:
+            return None
 
-    def understand_with_llm(self, query):
-        """
-        Use OpenAI LLM to classify the customer query.
-        Returns a string label (e.g., 'late delivery', 'refund request', etc.)
-        """
-        prompt = (
-            "Classify the following customer support query into an issue type (e.g., 'late delivery', 'refund request', 'product defect', 'cancellation', 'general inquiry'). "
-            f"Query: {query}\nIssue type:"
-        )
-        try:
-            response = openai.Completion.create(
-                engine="text-davinci-003",
-                prompt=prompt,
-                max_tokens=10,
-                temperature=0
+    # Full workflow
+    def run(self, customer_info: dict):
+        # Stage 1: INTAKE
+        self.state["customer"] = customer_info
+        logging.info(f"INTAKE: {self.state['customer']}")
+
+        # Stage 2: UNDERSTAND (rule-based intent extraction)
+        query = customer_info.get("query", "")
+        if "order" in query.lower():
+            self.state["intent"] = "delivery_issue"
+        elif "refund" in query.lower():
+            self.state["intent"] = "refund_request"
+        elif "password" in query.lower():
+            self.state["intent"] = "account_issue"
+        else:
+            self.state["intent"] = "general_query"
+        logging.info(f"UNDERSTAND: intent={self.state['intent']}")
+
+        # Stage 3: PREPARE
+        execute_ability("normalize_fields", "COMMON", self.state)
+        execute_ability("enrich_records", "ATLAS", self.state)
+        execute_ability("add_flags_calculations", "COMMON", self.state)
+        logging.info(f"PREPARE: Priority={customer_info.get('priority')}")
+
+        # Stage 4: ASK (skipped)
+        logging.info("ASK: No clarification needed")
+
+        # Stage 5: WAIT (skipped)
+        logging.info("WAIT: No pending answer")
+
+        # Stage 6: RETRIEVE
+        self.state["kb_answer"] = self.knowledge_base_search(query)
+        execute_ability("knowledge_base_search", "ATLAS", self.state)
+        logging.info(f"RETRIEVE: KB Answer={self.state['kb_answer']}")
+
+        # Stage 7: DECIDE
+        if self.state["kb_answer"]:
+            self.state["solution_score"] = random.randint(90, 100)
+        else:
+            self.state["solution_score"] = random.randint(60, 80)
+
+        if self.state["solution_score"] >= 90:
+            self.state["can_auto_solve"] = True
+            execute_ability("solution_evaluation", "COMMON", self.state)
+            self.state["ticket_status"] = "Resolved"
+        else:
+            self.state["can_auto_solve"] = False
+            execute_ability("escalation_decision", "ATLAS", self.state)
+            self.state["ticket_status"] = "Escalated"
+        logging.info(f"DECIDE: score={self.state['solution_score']} auto_solve={self.state['can_auto_solve']}")
+
+        # Stage 8: UPDATE
+        execute_ability("update_ticket", "ATLAS", self.state)
+        logging.info(f"UPDATE: Ticket status={self.state['ticket_status']}")
+
+        # Stage 9: CREATE
+        if self.state["can_auto_solve"]:
+            self.state["reply"] = (
+                f"Hello {self.state['customer']['name']},\n"
+                f"{self.state['kb_answer']}\n"
+                "Thank you for your patience."
             )
-            issue_type = response.choices[0].text.strip().lower()
-            if not issue_type:
-                raise ValueError("Empty LLM response")
-            return issue_type
-        except Exception as e:
-            # Fallback: simple keyword matching
-            q = query.lower()
-            if "late" in q or "not arrived" in q:
-                return "late delivery"
-            elif "refund" in q:
-                return "refund request"
-            elif "defect" in q or "broken" in q:
-                return "product defect"
-            elif "cancel" in q:
-                return "cancellation"
-            else:
-                return "general inquiry"
-
-    def understand_stage(self):
-        query = self.state['customer'].get('query', '')
-        issue_type = self.understand_with_llm(query)
-        self.state['issue_type'] = issue_type
-        print(f"UNDERSTAND: Issue type identified as '{issue_type}'")
-
-    def prepare_stage(self):
-        # Simulate ticket history and priority
-        self.state['ticket_history'] = ["Order placed", "Payment confirmed"]
-        if self.state['issue_type'] == 'late delivery':
-            self.state['priority'] = 'high'
-        print(f"PREPARE: Ticket history {self.state['ticket_history']}, priority {self.state['priority']}")
-
-    def ask_stage(self):
-        # Check for missing info (simulate)
-        missing = []
-        for field in ['name', 'email', 'query', 'ticket_id']:
-            if not self.state['customer'].get(field):
-                missing.append(field)
-        self.state['missing_info'] = missing
-        if missing:
-            print(f"ASK: Missing info {missing}, requesting from customer")
         else:
-            print("ASK: All required info present")
+            self.state["reply"] = (
+                f"Hello {self.state['customer']['name']},\n"
+                "Your issue has been escalated to our support team."
+            )
+        logging.info("CREATE: Reply drafted")
 
-    def wait_stage(self):
-        if self.state['missing_info']:
-            # Simulate waiting and receiving info
-            print("WAIT: Waiting for customer reply...")
-            # For demo, auto-fill missing info
-            for field in self.state['missing_info']:
-                self.state['customer'][field] = f"dummy_{field}"
-            print(f"WAIT: Received missing info {self.state['missing_info']}")
-        else:
-            print("WAIT: No missing info, proceeding")
+        # Stage 10: DO
+        execute_ability("trigger_notifications", "ATLAS", self.state)
+        logging.info("DO: Notifications sent")
 
-    def retrieve_stage(self):
-        # Simulate KB search
-        print("RETRIEVE: Searching knowledge base for solutions")
-        self.state['kb_result'] = "Order is delayed due to shipping issues. Expected delivery in 3 days."
-
-    def decide_stage(self):
-        # Simulate auto-solve decision
-        if self.state['issue_type'] == 'late delivery':
-            self.state['auto_solve'] = True
-            print("DECIDE: Auto-solving the issue")
-        else:
-            self.state['auto_solve'] = False
-            print("DECIDE: Escalating to human agent")
-
-    def update_stage(self):
-        if self.state['auto_solve']:
-            self.state['ticket_status'] = 'Resolved'
-        else:
-            self.state['ticket_status'] = 'Escalated'
-        print(f"UPDATE: Ticket status updated to '{self.state['ticket_status']}'")
-
-    def create_stage(self):
-        # Draft reply
-        name = self.state['customer'].get('name', 'Customer')
-        reply = (
-            f"Hello {name},\n"
-            f"{self.state['kb_result']}\n"
-            "Thank you for your patience."
-        )
-        self.state['reply'] = reply
-        print(f"CREATE: Drafted reply:\n{reply}")
-
-    def do_stage(self):
-        # Simulate sending reply/notifications
-        print("DO: Sending reply and notifications")
-        self.state['actions'].append('sent_reply')
-
-    def complete_stage(self):
-        result = {
-            'ticket_id': self.state['customer'].get('ticket_id'),
-            'status': self.state['ticket_status'],
-            'reply': self.state['reply']
+        # Stage 11: COMPLETE
+        final_payload = {
+            "ticket_id": self.state["customer"]["ticket_id"],
+            "status": self.state["ticket_status"],
+            "reply": self.state["reply"]
         }
-        self.state['final_result'] = result
-        print(f"COMPLETE: Final result {result}")
+        logging.info(f"COMPLETE: {final_payload}")
+        return final_payload
 
-    def run(self, customer_details):
-        self.intake_stage(customer_details)
-        self.understand_stage()
-        self.prepare_stage()
-        self.ask_stage()
-        self.wait_stage()
-        self.retrieve_stage()
-        self.decide_stage()
-        self.update_stage()
-        self.create_stage()
-        self.do_stage()
-        self.complete_stage()
-
-
+# -------------------------
+# Demo Run
+# -------------------------
 if __name__ == "__main__":
-    # Example customer query
-    customer = {
-        'name': 'John Doe',
-        'email': 'john@example.com',
-        'query': "My order #1234 hasn’t arrived.",
-        'ticket_id': '1234'
-    }
     agent = CustomerSupportAgent()
-    agent.run(customer)
+
+    customer_info = {
+        "name": "Alice Smith",
+        "email": "alice@example.com",
+        "query": "I want a refund for my last order.",
+        "priority": "high",
+        "ticket_id": "TCK-1001"
+    }
+
+    result = agent.run(customer_info)
+    print("\nFINAL OUTPUT:")
+    print(result)

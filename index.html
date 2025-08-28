@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Customer Support Agent</title>
+</head>
+<body>
+  <h1>🧩 Customer Support Agent Demo</h1>
+  <form method="POST">
+    <textarea name="message" rows="4" cols="50" placeholder="Enter customer query"></textarea><br>
+    <button type="submit">Run Agent</button>
+  </form>
+
+  {% if result %}
+    <h2>Final Output</h2>
+    <pre>{{ result | tojson(indent=2) }}</pre>
+  {% endif %}
+</body>
+</html>
