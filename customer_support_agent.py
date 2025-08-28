@@ -134,9 +134,7 @@ class CustomerSupportAgent:
         logging.info(f"COMPLETE: {final_payload}")
         return final_payload
 
-# -------------------------
-# Demo Run
-# -------------------------
+
 if __name__ == "__main__":
     agent = CustomerSupportAgent()
 
