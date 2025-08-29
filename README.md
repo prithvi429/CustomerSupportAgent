@@ -54,16 +54,6 @@
 
 ---
 
-## 🎬 Demo Video
-
-Watch a quick demo of CustomerSupportAgent in action:
-
-👉 [Demo Video on YouTube](C:\Users\DELL\CustomerSupportAgent\demo\agent.mp4)
-
-*Replace the link above with your own demo video if available.*
-
----
-
 ## 📝 Example Usage
 ```python
 from customer_support_agent import CustomerSupportAgent
