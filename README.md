@@ -54,6 +54,16 @@
 
 ---
 
+## 🎬 Demo Video
+
+Watch a quick demo of CustomerSupportAgent in action:
+
+👉 [Demo Video on YouTube](https://www.youtube.com/watch?v=dQw4w9WgXcQ)
+
+*Replace the link above with your own demo video if available.*
+
+---
+
 ## 📝 Example Usage
 ```python
 from customer_support_agent import CustomerSupportAgent
